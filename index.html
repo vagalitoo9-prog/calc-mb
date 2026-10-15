@@ -524,14 +524,14 @@
     };
 
     function loadState() {
-      let saved = localStorage.getItem('calc_matched_betting_state');
+      let saved = localStorage.getItem('calc_matched_betting_state_v3');
       if (saved) {
         try { state = Object.assign(state, JSON.parse(saved)); } catch(e){}
       }
     }
 
     function saveState() {
-      localStorage.setItem('calc_matched_betting_state', JSON.stringify(state));
+      localStorage.setItem('calc_matched_betting_state_v3', JSON.stringify(state));
     }
 
     function syncInputsToDOM() {
@@ -718,17 +718,22 @@
     }
 
     function formatVal(val) {
+      if (isNaN(val)) val = 0;
       let cls = val < 0 ? 'val-neg' : 'val-pos';
       let sign = val > 0 ? '+' : '';
       return '<span class="' + cls + '">' + sign + val.toFixed(2) + ' $</span>';
     }
 
+    function parseNum(val) {
+      if (!val) return 0;
+      return parseFloat(String(val).replace(',', '.')) || 0;
+    }
+
     function calcularEstandar() {
-      let imp = parseFloat(state.imp.replace(',', '.')) || 0;
-      let cb = parseFloat(state.cb.replace(',', '.')) || 0;
-      let cl = parseFloat(state.cl.replace(',', '.')) || 0;
-      let comVal = parseFloat(state.com.replace(',', '.')) || 0;
-      let com = comVal / 100;
+      let imp = parseNum(state.imp);
+      let cb = parseNum(state.cb);
+      let cl = parseNum(state.cl);
+      let com = parseNum(state.com) / 100;
 
       if (cl <= com) return;
 
@@ -775,9 +780,9 @@
     }
 
     function calcularBookie() {
-      let imp1 = parseFloat(state.bkImp.replace(',', '.')) || 0;
-      let cb1 = parseFloat(state.bkCb1.replace(',', '.')) || 0;
-      let cb2 = parseFloat(state.bkCb2.replace(',', '.')) || 0;
+      let imp1 = parseNum(state.bkImp);
+      let cb1 = parseNum(state.bkCb1);
+      let cb2 = parseNum(state.bkCb2);
 
       if (cb2 <= 0) return;
 
@@ -808,25 +813,28 @@
     }
 
     function calcularSecuencial() {
-      let bStake = parseFloat(state.seqBackStake.replace(',', '.')) || 0;
-      let bOdds = parseFloat(state.seqBackOdds.replace(',', '.')) || 0;
-      let comVal = parseFloat(state.seqComision.replace(',', '.')) || 0;
+      let bStake = parseNum(state.seqBackStake);
+      let bOdds = parseNum(state.seqBackOdds);
+      let comVal = parseNum(state.seqComision);
       let c = state.seqPlatform === 'exchange' ? (comVal / 100) : 0;
 
       let activeLegs = state.seqPlatform === 'exchange' ? state.legsEx : state.legsBk;
       let oddsList = [
-        parseFloat(activeLegs[0].replace(',', '.')) || 1.01,
-        parseFloat(activeLegs[1].replace(',', '.')) || 1.01
+        parseNum(activeLegs[0]) || 1.01,
+        parseNum(activeLegs[1]) || 1.01
       ];
-      if (state.numPatas >= 3) oddsList.push(parseFloat(activeLegs[2].replace(',', '.')) || 1.01);
-      if (state.numPatas === 4) oddsList.push(parseFloat(activeLegs[3].replace(',', '.')) || 1.01);
+      if (state.numPatas >= 3) oddsList.push(parseNum(activeLegs[2]) || 1.01);
+      if (state.numPatas === 4) oddsList.push(parseNum(activeLegs[3]) || 1.01);
 
       let fCombo = 1.0;
       for (let i = 0; i < oddsList.length; i++) {
         fCombo *= (oddsList[i] - c) / (1 - c);
       }
 
-      let backReturn = 0, bookieLoss = 0, bookieWinGain = 0;
+      let backReturn = 0;
+      let bookieLoss = 0;
+      let bookieWinGain = 0;
+
       if (state.seqType === 'SR') {
         backReturn = bStake * bOdds;
         bookieWinGain = bStake * (bOdds - 1);
@@ -834,14 +842,21 @@
       } else if (state.seqType === 'SNR') {
         backReturn = bStake * (bOdds - 1);
         bookieWinGain = bStake * (bOdds - 1);
-        bookieLoss = 0;
+        bookieLoss = 0; // Al perder la Freebet SNR, la pérdida real de tu bolsillo es 0 $
       } else if (state.seqType === 'FSR') {
         backReturn = bStake * bOdds;
         bookieWinGain = bStake * bOdds;
         bookieLoss = 0;
       }
 
-      let targetT = (backReturn / fCombo) + bookieLoss;
+      // CORRECCIÓN MATEMÁTICA FREEBETS:
+      // Para equilibrar el objetivo T cuando bookieLoss es 0 (SNR/FSR) versus la inversión inicial
+      let targetT = 0;
+      if (state.seqType === 'SR') {
+        targetT = (backReturn / fCombo) + bookieLoss;
+      } else {
+        targetT = backReturn / fCombo;
+      }
 
       let stakes = [];
       let liabilities = [];
