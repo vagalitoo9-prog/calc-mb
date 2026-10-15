@@ -1,0 +1,16 @@
+{
+  "name": "CALC Matched Betting Pro",
+  "short_name": "CALC MB",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#ffb3a7",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%231e1e1e' rx='100'/%3E%3Cpath d='M120 180h272M120 256h272M120 332h160' stroke='%23ffb3a7' stroke-width='36' stroke-linecap='round'/%3E%3Ccircle cx='350' cy='332' r='20' fill='%2310b981'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

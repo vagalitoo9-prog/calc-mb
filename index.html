@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CALC Matched Betting Pro</title>
-  
-  <!-- CONFIGURACIÓN PWA PARA INSTALAR COMO APP -->
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22CALC%20Matched%20Betting%20Pro%22%2C%22short_name%22%3A%22CALC%20MB%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23121212%22%2C%22theme_color%22%3A%22%23ffb3a7%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3C%3Fxml%20version%3D%271.0%27%20encoding%3D%27UTF-8%27%3F%3E%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%27%20width%3D%27512%27%20height%3D%27512%27%3E%3Crect%20width%3D%27512%27%20height%3D%27512%27%20fill%3D%27%231e1e1e%27%20rx%3D%27100%27%2F%3E%3Cpath%20d%3D%27M120%20180h272M120%20256h272M120%20332h160%27%20stroke%3D%27%23ffb3a7%27%20stroke-width%3D%2736%27%20stroke-linecap%3D%27round%27%2F%3E%3Ccircle%20cx%3D%27350%27%20cy%3D%27332%27%20r%2720%27%20fill%3D%27%2310b981%27%2F%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+
+  <!-- Enlace al archivo de manifiesto PWA -->
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffb3a7">
 
   <style>
@@ -514,10 +514,8 @@
       imp: '200', cb: '2.40', cl: '2.40', com: '4.55',
       bkImp: '500', bkCb1: '3.00', bkCb2: '1.60',
 
-      seqExBackStake: '100', seqExBackOdds: '6.393', seqComision: '4.55',
+      seqBackStake: '100', seqBackOdds: '6.393', seqComision: '4.55',
       legsEx: ['2.07', '1.71', '2.21', '1.50'],
-
-      seqBkBackStake: '500', seqBkBackOdds: '5.00',
       legsBk: ['2.50', '3.10', '2.80', '2.00'],
 
       seqPlatform: 'exchange',
@@ -526,14 +524,14 @@
     };
 
     function loadState() {
-      let saved = localStorage.getItem('calc_matched_betting_state_v2');
+      let saved = localStorage.getItem('calc_matched_betting_state');
       if (saved) {
         try { state = Object.assign(state, JSON.parse(saved)); } catch(e){}
       }
     }
 
     function saveState() {
-      localStorage.setItem('calc_matched_betting_state_v2', JSON.stringify(state));
+      localStorage.setItem('calc_matched_betting_state', JSON.stringify(state));
     }
 
     function syncInputsToDOM() {
@@ -546,30 +544,20 @@
       document.getElementById('bkCuota1').value = state.bkCb1;
       document.getElementById('bkCuota2').value = state.bkCb2;
 
-      syncSeqPlatformInputs();
+      document.getElementById('seqBackStake').value = state.seqBackStake;
+      document.getElementById('seqBackOdds').value = state.seqBackOdds;
+      document.getElementById('seqComision').value = state.seqComision;
+
+      let activeLegs = state.seqPlatform === 'exchange' ? state.legsEx : state.legsBk;
+      for(let i=1; i<=4; i++) {
+        document.getElementById('leg'+i).value = activeLegs[i-1];
+      }
 
       selectExchangeMode(null, state.estandarMode, false);
       selectTypeMode('estandar', null, state.estandarType, false);
       selectSeqMode(state.seqPlatform, null, false);
       selectTypeMode('secuencial', null, state.seqType, false);
       selectPatas(state.numPatas, null, false);
-    }
-
-    function syncSeqPlatformInputs() {
-      if (state.seqPlatform === 'exchange') {
-        document.getElementById('seqBackStake').value = state.seqExBackStake;
-        document.getElementById('seqBackOdds').value = state.seqExBackOdds;
-        document.getElementById('seqComision').value = state.seqComision;
-        for (let i = 1; i <= 4; i++) {
-          document.getElementById('leg' + i).value = state.legsEx[i - 1];
-        }
-      } else {
-        document.getElementById('seqBackStake').value = state.seqBkBackStake;
-        document.getElementById('seqBackOdds').value = state.seqBkBackOdds;
-        for (let i = 1; i <= 4; i++) {
-          document.getElementById('leg' + i).value = state.legsBk[i - 1];
-        }
-      }
     }
 
     function switchTab(tabId, btn) {
@@ -619,7 +607,10 @@
         else btnBk.classList.add('active-salmon');
       }
 
-      syncSeqPlatformInputs();
+      let activeLegs = platform === 'exchange' ? state.legsEx : state.legsBk;
+      for(let i=1; i<=4; i++) {
+        document.getElementById('leg'+i).value = activeLegs[i-1];
+      }
 
       if (platform === 'exchange') {
         document.getElementById('groupSeqCom').style.display = 'block';
@@ -714,19 +705,13 @@
     }
 
     function guardarYCalcularSecuencial() {
-      if (state.seqPlatform === 'exchange') {
-        state.seqExBackStake = document.getElementById('seqBackStake').value;
-        state.seqExBackOdds = document.getElementById('seqBackOdds').value;
-        state.seqComision = document.getElementById('seqComision').value;
-        for (let i = 1; i <= 4; i++) {
-          state.legsEx[i - 1] = document.getElementById('leg' + i).value;
-        }
-      } else {
-        state.seqBkBackStake = document.getElementById('seqBackStake').value;
-        state.seqBkBackOdds = document.getElementById('seqBackOdds').value;
-        for (let i = 1; i <= 4; i++) {
-          state.legsBk[i - 1] = document.getElementById('leg' + i).value;
-        }
+      state.seqBackStake = document.getElementById('seqBackStake').value;
+      state.seqBackOdds = document.getElementById('seqBackOdds').value;
+      state.seqComision = document.getElementById('seqComision').value;
+      
+      let activeLegs = state.seqPlatform === 'exchange' ? state.legsEx : state.legsBk;
+      for(let i=1; i<=4; i++) {
+        activeLegs[i-1] = document.getElementById('leg'+i).value;
       }
       saveState();
       calcularSecuencial();
@@ -823,8 +808,8 @@
     }
 
     function calcularSecuencial() {
-      let bStake = parseFloat((state.seqPlatform === 'exchange' ? state.seqExBackStake : state.seqBkBackStake).replace(',', '.')) || 0;
-      let bOdds = parseFloat((state.seqPlatform === 'exchange' ? state.seqExBackOdds : state.seqBkBackOdds).replace(',', '.')) || 0;
+      let bStake = parseFloat(state.seqBackStake.replace(',', '.')) || 0;
+      let bOdds = parseFloat(state.seqBackOdds.replace(',', '.')) || 0;
       let comVal = parseFloat(state.seqComision.replace(',', '.')) || 0;
       let c = state.seqPlatform === 'exchange' ? (comVal / 100) : 0;
 
